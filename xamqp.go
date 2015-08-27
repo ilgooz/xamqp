@@ -35,10 +35,18 @@ func Dial(s string) (*Q, error) {
 		amqpErrC := make(chan *amqp.Error, 0)
 		q.c.NotifyClose(amqpErrC)
 		amqpErr := <-amqpErrC
+		if amqpErr == nil {
+			return
+		}
 		fmt.Println("xamqp connection lost")
 		q.Close <- amqpErr
 	}()
 	return q, nil
+}
+
+func (q *Q) Revoke() {
+	q.c.Close()
+	fmt.Println("xampq connection closed")
 }
 
 type Channel struct {
@@ -171,6 +179,10 @@ func (c *Channel) Consume(name string, handler interface{}) error {
 		}
 	}()
 	return nil
+}
+
+func (c *Channel) Close() error {
+	return c.c.Close()
 }
 
 func (c *Channel) Qos(count int) error {
